@@ -6,9 +6,11 @@
 
 package org.dynamicfactory.multihelp;
 
+import org.dynamicfactory.AbstractFactory;
 import org.dynamicfactory.FactoryFactory;
 
 import java.io.File;
+import java.util.Collection;
 
 
 /**
@@ -42,12 +44,48 @@ public class AutoDoc extends org.multihelp.file.FileNode {
 
         // Construct the HTML header
 
-        // Which page are we viewing again?
+        // create the appropriate factory
+        AbstractFactory factory = FactoryFactory.newInstance().create(listID);
+
+        if (isInterface) {
+            // extract the interface level documentation from the factory object
+
+            // extract the interface object from the factory object
+
+            // extract and load all function signatures
+
+            // list all parameters with their documentation from the factory object
+
+            // list hyperlinks to all available implementations
+
+        } else {
+            // extract the interface global documentation and hyperlink
+
+            // extract the combined parameter lists and documentation
+
+            // extract any class specific functions not in the interface
+        }
     }
 
     @Override
     public void traverseFileSystem(File root, int depth) {
-        document.traverseFileSystem(root,depth);
+        // build this FileNode listing the known nterfaces and their short description.
+
+
+        // build the interface loop
+        FactoryFactory factory = FactoryFactory.newInstance();
+        for(String thisInterface : FactoryFactory.newInstance().getKnownTypes()){
+            AbstractFactory interfaceFactory = factory.create(thisInterface);
+            // construct the interface page
+
+            Collection<String> list = interfaceFactory.getKnownTypes();
+            for(String o : list){
+                // construct the product pages as children
+
+            }
+        }
+
+        //
     }
 
     protected static void traverseFileSystemInternal(File root, int depth) {
@@ -55,7 +93,7 @@ public class AutoDoc extends org.multihelp.file.FileNode {
 
         // Construct a list of all factories
         FactoryFactory base = FactoryFactory.newInstance();
-        for(String interfaceName : base.getKnownTypes()){
+        for (String interfaceName : base.getKnownTypes()) {
 
         }
     }
