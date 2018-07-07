@@ -29,8 +29,6 @@ import java.util.logging.Logger;
  */
 public class AutoDoc extends org.multihelp.file.FileNode {
 
-    protected static AutoDoc document = null;
-
     protected String listID;
 
     protected FileNode parentInterface;
@@ -49,122 +47,13 @@ public class AutoDoc extends org.multihelp.file.FileNode {
 
     protected String[][] parameters;
 
-    protected AutoDoc(File root, int place) {
-        super(root);
-        if (document == null) {
-            document = new AutoDoc(root);
-        }
-    }
-
     public AutoDoc(File root) {
         super(root);
     }
 
     @Override
     public void setPage(org.multihelp.HelpViewer viewer) {
-        document.setPageInternal(viewer);
-    }
-
-    public void setPageInternal(org.multihelp.HelpViewer viewer) {
-
-        // Construct the HTML header
-
-        // create the appropriate factory
-
-        if (isInterface) {
-        } else {
-
-        }
-    }
-
-    protected void setPageConcrete(org.multihelp.HelpViewer viewer) {
-
-        AbstractFactory factory = FactoryFactory.newInstance().create(listID);
-
-        // extract the interface global documentation and hyperlink
-
-        // extract the combined parameter lists and documentation
-
-        // extract any class specific functions not in the interface
-
-    }
-
-    protected void setPageInterface(org.multihelp.HelpViewer viewer) {
-
-        AbstractFactory factory = FactoryFactory.newInstance().create(listID);
-
-        StringBuffer buffer = new StringBuffer();
-        addHeader(buffer);
-        // extract the interface level documentation from the factory object
-        buffer.append(factory.getDescription());
-        buffer.append(factory.getLongDescription());
-
-        // extract and load all function signatures
-        TypeVariable[] t = factory.getClass().getTypeParameters();
-
-        if (t.length > 0) {
-            Class c = t[0].getClass();
-            Method[] methods = c.getDeclaredMethods();
-            for (Method method : methods) {
-                buffer.append("<code>");
-                buffer.append(method.getGenericReturnType().getClass().getName());
-                buffer.append(" ");
-                buffer.append(method.getName());
-                buffer.append("(");
-                Type[] types = method.getGenericParameterTypes();
-                boolean first = true;
-                int count = 'a';
-                for (Type type : types) {
-                    if (first) {
-                        first = false;
-                    } else {
-                        buffer.append(", ");
-                    }
-                    buffer.append(type.getClass().getName());
-                    buffer.append(" ");
-                    buffer.append((char) count++);
-                }
-                buffer.append(")</code>");
-            }
-        } else {
-            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, "Internal error: All factories must provide a concrete type");
-        }
-
-        // TODO: Attach separator from the interface
-
-        // list all parameters with their documentation from the factory object
-        Properties list = factory.getParameter();
-        for (Parameter param : list.get()) {
-            buffer.append("<p/>" + param.getType() + " of type " + param.getType());
-            buffer.append(" ").append(param.getDescription());
-            buffer.append(" ").append(param.getLongDescription());
-            if (param.getRestrictions() != null) {
-                buffer.append("Minumum parameter count of ");
-                buffer.append(param.getRestrictions().getMinCount()).append("\n");
-                buffer.append("Maximum parameter count of ");
-                buffer.append(param.getRestrictions().getMaxCount()).append("\n");
-                buffer.append(" with a default of ");
-                buffer.append(param.get().toString()).append("\n");
-            }
-
-        }
-
-        // list hyperlinks to all available implementations
-        Vector<FileNode> e = this.children;
-        for (FileNode file : e) {
-            buffer.append("<href link=\"" + e.toString() + "\"/>");
-        }
-
-        addFooter(buffer);
-    }
-
-    protected void addHeader(StringBuffer buffer) {
-        buffer.append("<html5>");
-    }
-
-
-    protected void addFooter(StringBuffer buffer) {
-        buffer.append("</html5>");
+        viewer.set(getHTMLString(Locale.getDefault()));
     }
 
     @Override
@@ -181,7 +70,9 @@ public class AutoDoc extends org.multihelp.file.FileNode {
                 // construct the product pages as children
                 AbstractFactory factory = FactoryFactory.newInstance().create(listID);
 
-                AutoDoc interfaceHelpPage = new AutoDoc(root,depth+1);
+
+                AutoDoc interfaceHelpPage = new AutoDoc(root);
+                interfaceHelpPage.isInterface=true;
                 // extract the interface level documentation from the factory object
                 interfaceHelpPage.description = factory.getDescription();
                 interfaceHelpPage.longDescription = factory.getLongDescription();
@@ -228,9 +119,10 @@ public class AutoDoc extends org.multihelp.file.FileNode {
                 this.add(interfaceHelpPage);
                 // list hyperlinks to all available implementations
                 for (String type : (Collection<String>)factory.getKnownTypes()){
-                    AutoDoc file = new AutoDoc(root,depth+2);
+                    AutoDoc file = new AutoDoc(root);
+                    file.isInterface=false;
                     file.parent = interfaceHelpPage;
-                    AutoDoc concreteHelpPage = new AutoDoc(root,depth+1);
+                    AutoDoc concreteHelpPage = new AutoDoc(root);
                     // extract the interface level documentation from the factory object
                     concreteHelpPage.description = factory.getDescription();
                     concreteHelpPage.longDescription = factory.getLongDescription();
@@ -284,22 +176,121 @@ public class AutoDoc extends org.multihelp.file.FileNode {
         }
     }
 
-    protected static void traverseFileSystemInternal(File root, int depth) {
-        // build the entire tree here
+    protected String getHTMLStringInterface(Locale l){
+        StringBuffer buffer = new StringBuffer();
+        buffer.append("<html><body>");
+        buffer.append("<h1>Interface ").append(listID).append("</h1>");
 
-        // Construct a list of all factories
-        FactoryFactory base = FactoryFactory.newInstance();
-        for (String interfaceName : base.getKnownTypes()) {
-            AbstractFactory type = base.create(interfaceName);
+        // interface
+        buffer.append("<p>").append(longDescription);
 
+        buffer.append("<h3>Global Parameters</h3>");
+        buffer.append("<ul>");
+        for(int interfaceParameterIndex=0;interfaceParameterIndex<parameters.length;interfaceParameterIndex++){
+            buffer.append("<li>").append("<h4>").append(parameters[interfaceParameterIndex][0]).append("</h4>");
+            buffer.append("<p>").append(parameters[interfaceParameterIndex][1]);
+            buffer.append("<p>Must have between ").append(parameters[0][2]).append(" and ").append(parameters[0][3]).append(" number of values");
         }
+        buffer.append("</ul>");
+
+        buffer.append("<h3>Methods</h3>");
+        buffer.append("<ul>");
+        for(int interfaceMethodIndex=0;interfaceMethodIndex<parameters.length;interfaceMethodIndex++){
+            buffer.append("<li>").append(returnTypes[interfaceMethodIndex]).append(" ").append(methods[interfaceMethodIndex]).append("(");
+            boolean first=true;
+            for(int parameterIndex=0;parameterIndex<parameters[interfaceMethodIndex].length;parameterIndex++){
+                if(first){
+                    first = false;
+                }else{
+                    buffer.append(", ");
+                }
+                buffer.append(methodParameters[interfaceMethodIndex][parameterIndex]);
+            }
+            buffer.append(")");
+            buffer.append("</li>");
+        }
+        buffer.append("</ul>");
+
+        buffer.append("</body></html>");
+        return buffer.toString();
     }
 
+    protected String getHTMLStringClass(Locale l){
+        AutoDoc document = (AutoDoc)getParent();
+        StringBuffer buffer = new StringBuffer();
+        buffer.append("<html><body>");
+        buffer.append("<h1>Interface ").append(document.listID).append("</h1>");
+        buffer.append("<h2>Class ").append(listID).append("</h2>");
+
+        // interface
+        buffer.append("<a href=\"../").append(document.listID).append("\"/>");
+        buffer.append("<p>").append(document.description);
+        buffer.append("<p>").append(longDescription);
+
+        buffer.append("<h3>Interface Global Parameters</h3>");
+        buffer.append("<ul>");
+        for(int interfaceParameterIndex=0;interfaceParameterIndex<document.parameters.length;interfaceParameterIndex++){
+            buffer.append("<li>").append("<h4>").append(document.parameters[interfaceParameterIndex][0]).append("</h4>");
+            buffer.append("<p>").append(document.parameters[interfaceParameterIndex][1]);
+            buffer.append("<p>Must have between ").append(document.parameters[0][2]).append(" and ").append(document.parameters[0][3]).append(" number of values");
+        }
+        buffer.append("</ul>");
+
+        buffer.append("<h3>Class Specific Parameters</h3>");
+        buffer.append("<ul>");
+        for(int classParameterIndex=0;classParameterIndex<document.parameters.length;classParameterIndex++){
+            buffer.append("<li>").append("<h4>").append(document.parameters[classParameterIndex][0]).append("</h4>");
+            buffer.append("<p>").append(document.parameters[classParameterIndex][1]);
+            buffer.append("<p>Must haave between ").append(document.parameters[0][2]).append(" and ").append(document.parameters[0][3]).append(" number of values");
+        }
+        buffer.append("</ul>");
+
+        buffer.append("<h3>Interface Global Methods</h3>");
+        buffer.append("<ul>");
+        for(int interfaceMethodIndex=0;interfaceMethodIndex<document.parameters.length;interfaceMethodIndex++){
+            buffer.append("<li>").append(document.returnTypes[interfaceMethodIndex]).append(" ").append(document.methods[interfaceMethodIndex]).append("(");
+            boolean first=true;
+            for(int parameterIndex=0;parameterIndex<document.parameters[interfaceMethodIndex].length;parameterIndex++){
+                if(first){
+                    first = false;
+                }else{
+                    buffer.append(", ");
+                }
+                buffer.append(document.methodParameters[interfaceMethodIndex][parameterIndex]);
+            }
+            buffer.append(")");
+            buffer.append("</li>");
+        }
+        buffer.append("</ul>");
+
+        buffer.append("<h3>Class Specific Methods</h3>");
+        buffer.append("<ul>");
+        for(int classMethodIndex=0;classMethodIndex<document.parameters.length;classMethodIndex++){
+            buffer.append("<li>").append(document.returnTypes[classMethodIndex]).append(" ").append(document.methods[classMethodIndex]).append("(");
+            boolean first=true;
+            for(int parameterIndex=0;parameterIndex<document.parameters[classMethodIndex].length;parameterIndex++){
+                if(first){
+                    first = false;
+                }else{
+                    buffer.append(", ");
+                }
+                buffer.append(document.methodParameters[classMethodIndex][parameterIndex]);
+            }
+            buffer.append(")");
+            buffer.append("</li>");
+        }
+        buffer.append("</ul>");
+
+        buffer.append("</body></html>");
+        return buffer.toString();
+    }
 
     protected String getHTMLString(Locale l) {
-        StringBuffer buffer = new StringBuffer();
-
-        return "";
+        if(isInterface){
+            return getHTMLStringInterface(l);
+        }else{
+            return getHTMLStringClass(l);
+        }
     }
 
     protected Document getHTMLDocument(Locale l) {
@@ -312,6 +303,7 @@ public class AutoDoc extends org.multihelp.file.FileNode {
         return doc;
     }
 
+    //TODO: implement command line export version
     protected String getText(Locale l) {
         StringBuffer buffer = new StringBuffer();
         return "";
